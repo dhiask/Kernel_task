@@ -106,17 +106,3 @@ int my_module_add_text(const char *text)
 }
 
 int my_module_get
-
-
-
-
-
-
-
-
-
-
-void cleanup_module(void)
-{
-    printk(KERN_INFO "Goodbye, kernel module fährt runter!\n");
-}
