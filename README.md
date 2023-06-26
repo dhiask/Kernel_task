@@ -17,4 +17,4 @@ Dabei wurden die folgenden Kernel APIs genutzt werden Workqueue/Timer, Liste, Mu
 3.1. Die Text-Daten aus den internen Speicher sollen regelmässig, 1 Wort pro Sekunde, in das Kernel Log geschrieben werden
 Für die Geschwindigkeit der Benuzung des Kernel Log Funktion wir setzen : LOG_INTERVAL_MS auf 1000
 
-Dase isin erstes Kernel Modul ist . :) :) :)
+Dase ist mein erstes Kernel Modul ist . :) :) :)
