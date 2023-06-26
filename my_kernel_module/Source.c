@@ -22,13 +22,6 @@ static struct workqueue_struct *my_workqueue;    // Workqueue for executing work
 static struct timer_list my_timer;                // Timer for regular execution
 
 
-int init_module(void)
-{
-    printk(KERN_INFO "Hello, kernel module Fährt Hoch !\n");
-    return 0;
-}
-
-
 static void my_work_function(struct work_struct *work)
 {
     struct my_data *data;
