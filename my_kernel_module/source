@@ -1,0 +1,115 @@
+#include linuxmodule.h
+#include linuxfs.h
+#include linuxslab.h
+#include linuxuaccess.h
+#include linuxtimer.h
+#include linuxlist.h
+#include linuxmutex.h
+
+#define BUFFER_SIZE 1024
+#define LOG_INTERVAL_MS 1000
+
+static char text_data = NULL;
+static struct timer_list log_timer;
+static struct mutex data_mutex;
+
+static void log_timer_callback(struct timer_list t)
+{
+    if (text_data) {
+        pr_info(Text data in internal memory %sn, text_data);
+        mod_timer(&log_timer, jiffies + msecs_to_jiffies(LOG_INTERVAL_MS));
+    }
+}
+
+static ssize_t my_module_read(struct file file, char __user buffer, size_t count, loff_t offset)
+{
+    ssize_t ret;
+
+    if (!text_data)
+        return 0;
+
+    mutex_lock(&data_mutex);
+    ret = simple_read_from_buffer(buffer, count, offset, text_data, strlen(text_data));
+    mutex_unlock(&data_mutex);
+
+    return ret;
+}
+
+static ssize_t my_module_write(struct file file, const char __user buffer, size_t count, loff_t offset)
+{
+    ssize_t ret;
+
+    if (offset = BUFFER_SIZE)
+        return -ENOMEM;
+
+    mutex_lock(&data_mutex);
+
+    if (text_data)
+        kfree(text_data);
+
+    text_data = kmalloc(count + 1, GFP_KERNEL);
+    if (!text_data) {
+        mutex_unlock(&data_mutex);
+        return -ENOMEM;
+    }
+
+    ret = copy_from_user(text_data, buffer, count);
+    if (ret) {
+        kfree(text_data);
+        text_data = NULL;
+        mutex_unlock(&data_mutex);
+        return -EFAULT;
+    }
+
+    text_data[count] = '0';
+    offset += count;
+
+    mutex_unlock(&data_mutex);
+    return count;
+}
+
+static struct file_operations my_module_fops = {
+    .read = my_module_read,
+    .write = my_module_write,
+};
+
+static int __init my_module_init(void)
+{
+    int ret;
+
+    mutex_init(&data_mutex);
+
+    ret = register_chrdev(0, my_module, &my_module_fops);
+    if (ret  0) {
+        pr_err(Failed to register my_modulen);
+        return ret;
+    }
+
+    setup_timer(&log_timer, log_timer_callback, 0);
+    mod_timer(&log_timer, jiffies + msecs_to_jiffies(LOG_INTERVAL_MS));
+
+    pr_info(my_module loadedn);
+    return 0;
+}
+
+static void __exit my_module_exit(void)
+{
+    mutex_lock(&data_mutex);
+    if (text_data) {
+        kfree(text_data);
+        text_data = NULL;
+    }
+    mutex_unlock(&data_mutex);
+
+    del_timer_sync(&log_timer);
+    unregister_chrdev(0, my_module);
+
+    pr_info(my_module unloadedn);
+}
+
+module_init(my_module_init);
+module_exit(my_module_exit);
+
+MODULE_LICENSE(GPL);
+MODULE_AUTHOR(Your Name);
+MODULE_DESCRIPTION(A dynamic Linux kernel module with Userspace interfaces);
